@@ -1,0 +1,81 @@
+# This "input" configures a global authorization rule to enable public access to
+# all models in this schema. Learn more about authorization rules here: https://docs.amplify.aws/cli/graphql/authorization-rules
+input AMPLIFY { globalAuthRule: AuthRule = { allow: public } } # FOR TESTING ONLY!
+
+type User @model {
+  id: ID!
+  email: String!
+  username: String!
+  profileImageUrl: String
+  bio: String
+  posts: [Post] @hasMany(indexName: "byUser", fields: ["id"])
+  followers: [UserFollow] @hasMany(indexName: "byFollowed", fields: ["id"])
+  following: [UserFollow] @hasMany(indexName: "byFollower", fields: ["id"])
+  comments: [Comment] @hasMany(indexName: "byUser", fields: ["id"])
+  likes: [Like] @hasMany(indexName: "byUser", fields: ["id"])
+  activities: [Activity] @hasMany(indexName: "byUser", fields: ["id"])
+}
+
+type UserFollow @model {
+  id: ID!
+  followerID: ID! @index(name: "byFollower", sortKeyFields: ["followedID"])
+  followedID: ID! @index(name: "byFollowed", sortKeyFields: ["followerID"])
+  follower: User @belongsTo(fields: ["followerID"])
+  followed: User @belongsTo(fields: ["followedID"])
+}
+
+type Post @model {
+  id: ID!
+  userID: ID! @index(name: "byUser", sortKeyFields: ["createdAt"])
+  user: User @belongsTo(fields: ["userID"])
+  postType: PostType!
+  mediaUrls: [String!]! # Supports multiple images or videos
+  description: String
+  likes: [Like] @hasMany(indexName: "byPost", fields: ["id"])
+  comments: [Comment] @hasMany(indexName: "byPost", fields: ["id"])
+  createdAt: AWSDateTime!
+  expiresAt: AWSDateTime
+}
+
+type Comment @model {
+  id: ID!
+  postID: ID! @index(name: "byPost", sortKeyFields: ["createdAt"])
+  post: Post @belongsTo(fields: ["postID"])
+  userID: ID! @index(name: "byUser", sortKeyFields: ["createdAt"])
+  user: User @belongsTo(fields: ["userID"])
+  content: String!
+  createdAt: AWSDateTime!
+}
+
+type Like @model {
+  id: ID!
+  postID: ID! @index(name: "byPost", sortKeyFields: ["createdAt"])
+  post: Post @belongsTo(fields: ["postID"])
+  userID: ID! @index(name: "byUser", sortKeyFields: ["createdAt"])
+  user: User @belongsTo(fields: ["userID"])
+  createdAt: AWSDateTime!
+}
+
+type Activity @model {
+  id: ID!
+  userID: ID! @index(name: "byUser", sortKeyFields: ["createdAt"])
+  user: User @belongsTo(fields: ["userID"])
+  type: ActivityType!
+  message: String!
+  createdAt: AWSDateTime!
+}
+
+enum PostType {
+  REGULAR
+  STORY
+  REEL
+}
+
+enum ActivityType {
+  FOLLOW
+  LIKE
+  COMMENT
+  POST
+  STORY
+  REEL
+}
